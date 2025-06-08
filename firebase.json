@@ -1,0 +1,25 @@
+{
+    "flutter": {
+        "platforms": {
+            "android": {
+                "default": {
+                    "projectId": "edlink-41098",
+                    "appId": "1:737373835066:android:356aaf3a2eaeaf459d0a03",
+                    "fileOutput": "android/app/google-services.json"
+                }
+            },
+            "dart": {
+                "lib/firebase_options.dart": {
+                    "projectId": "edlink-41098",
+                    "configurations": {
+                        "android": "1:737373835066:android:356aaf3a2eaeaf459d0a03",
+                        "ios": "1:737373835066:ios:05650097315635839d0a03",
+                        "macos": "1:737373835066:ios:05650097315635839d0a03",
+                        "web": "1:737373835066:web:530398e80be116f49d0a03",
+                        "windows": "1:737373835066:web:67fe59c61ad12b8d9d0a03"
+                    }
+                }
+            }
+        }
+    }
+}
