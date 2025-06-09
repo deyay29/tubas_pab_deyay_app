@@ -76,7 +76,7 @@ class _DosenPageState extends State<DosenPage> {
     if (user == null) throw Exception('User belum login');
 
     final uri = Uri.parse(
-      'http://127.0.0.1:8000/api/tugas',
+      'https://api-tubes-deyay.bimaryan.my.id/api/tugas',
     ); // Ganti dengan URL API kamu
 
     final response = await http.post(
