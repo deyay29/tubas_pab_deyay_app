@@ -2,6 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
 class DaftarMahasiswaPage extends StatefulWidget {
   const DaftarMahasiswaPage({super.key});
 
@@ -20,6 +22,56 @@ class _DaftarMahasiswaPageState extends State<DaftarMahasiswaPage> {
 
   String? editDocId;
   bool isLoading = false;
+
+  late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Inisialisasi Flutter Local Notifications
+    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    const InitializationSettings initializationSettings =
+        InitializationSettings(
+          android: initializationSettingsAndroid,
+          // Jika perlu untuk iOS, tambahkan iOSInitializationSettings di sini
+        );
+
+    flutterLocalNotificationsPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) {
+        // Bisa handle tap notifikasi di sini jika perlu
+      },
+    );
+  }
+
+  Future<void> showNotification(String title, String body) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+          'mahasiswa_channel', // channel id
+          'Mahasiswa Notifications', // channel name
+          channelDescription: 'Notifikasi untuk aksi mahasiswa',
+          importance: Importance.max,
+          priority: Priority.high,
+          ticker: 'ticker',
+        );
+
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+    );
+
+    await flutterLocalNotificationsPlugin.show(
+      0, // id notifikasi, bisa diganti jadi unik jika mau multiple notif
+      title,
+      body,
+      platformChannelSpecifics,
+      payload: 'data', // optional
+    );
+  }
 
   Future<void> fetchAndSetMahasiswa() async {
     // Kosong karena StreamBuilder sudah realtime
@@ -57,6 +109,7 @@ class _DaftarMahasiswaPageState extends State<DaftarMahasiswaPage> {
         });
 
         _showMessage('Berhasil menambah mahasiswa baru dan membuat akun.');
+        await showNotification('Sukses', 'Mahasiswa baru berhasil ditambahkan');
       } else {
         // Update data mahasiswa di Firestore (email dan password Firebase Auth tidak diupdate di sini)
         await firestore.collection('users').doc(editDocId).update({
@@ -66,6 +119,7 @@ class _DaftarMahasiswaPageState extends State<DaftarMahasiswaPage> {
         });
 
         _showMessage('Berhasil mengupdate data mahasiswa');
+        await showNotification('Sukses', 'Data mahasiswa berhasil diperbarui');
       }
 
       _clearForm();
@@ -94,6 +148,7 @@ class _DaftarMahasiswaPageState extends State<DaftarMahasiswaPage> {
       // Note: Untuk hapus user dari Firebase Auth, harus pakai Admin SDK (tidak bisa dari client)
 
       _showMessage('Berhasil menghapus data');
+      await showNotification('Sukses', 'Data mahasiswa berhasil dihapus');
     } catch (e) {
       _showMessage('Gagal menghapus data: $e');
     } finally {
@@ -227,8 +282,6 @@ class _DaftarMahasiswaPageState extends State<DaftarMahasiswaPage> {
                               firestore
                                   .collection('users')
                                   .where('role', isEqualTo: 'Mahasiswa')
-                                  // Kalau pakai orderBy, pastikan 'created_at' ada di semua dokumen dan index sudah dibuat di Firebase Console
-                                  // .orderBy('created_at', descending: true)
                                   .snapshots(),
                           builder: (context, snapshot) {
                             if (snapshot.connectionState ==

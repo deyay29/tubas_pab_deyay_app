@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class DaftarMatkulPage extends StatefulWidget {
   const DaftarMatkulPage({super.key});
@@ -15,9 +16,23 @@ class _DaftarMatkulPageState extends State<DaftarMatkulPage> {
   final TextEditingController namaMatkulController = TextEditingController();
   String? editDocId;
 
+  // Inisialisasi FlutterLocalNotificationsPlugin
+  late FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin;
+
   @override
   void initState() {
     super.initState();
+
+    flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+    const initializationSettingsAndroid = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
+    const initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+    );
+
+    flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
     fetchMatkul();
   }
 
@@ -51,12 +66,14 @@ class _DaftarMatkulPageState extends State<DaftarMatkulPage> {
         await FirebaseFirestore.instance.collection('matkul').add({
           'nama_matkul': namaMatkul,
         });
+        _showNotification('Berhasil', 'Mata kuliah baru berhasil ditambahkan');
       } else {
         // Update data
         await FirebaseFirestore.instance
             .collection('matkul')
             .doc(editDocId)
             .update({'nama_matkul': namaMatkul});
+        _showNotification('Berhasil', 'Data mata kuliah berhasil diupdate');
       }
 
       namaMatkulController.clear();
@@ -72,6 +89,7 @@ class _DaftarMatkulPageState extends State<DaftarMatkulPage> {
     try {
       await FirebaseFirestore.instance.collection('matkul').doc(docId).delete();
       fetchMatkul();
+      _showNotification('Berhasil', 'Data mata kuliah berhasil dihapus');
       _showMessage('Berhasil menghapus data mata kuliah');
     } catch (e) {
       _showMessage('Gagal menghapus data mata kuliah: $e');
@@ -87,6 +105,28 @@ class _DaftarMatkulPageState extends State<DaftarMatkulPage> {
 
   void _showMessage(String msg) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  // Fungsi untuk menampilkan notifikasi lokal
+  Future<void> _showNotification(String title, String body) async {
+    const androidPlatformChannelSpecifics = AndroidNotificationDetails(
+      'matkul_channel', // channel id
+      'Mata Kuliah Notifications', // channel name
+      channelDescription: 'Notifikasi untuk operasi mata kuliah',
+      importance: Importance.max,
+      priority: Priority.high,
+      ticker: 'ticker',
+    );
+    const platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+    );
+    await flutterLocalNotificationsPlugin.show(
+      0, // notification id
+      title,
+      body,
+      platformChannelSpecifics,
+      payload: 'item x',
+    );
   }
 
   @override

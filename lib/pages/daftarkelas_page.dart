@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class DaftarKelasPage extends StatefulWidget {
   const DaftarKelasPage({super.key});
@@ -13,8 +14,10 @@ class _DaftarKelasPageState extends State<DaftarKelasPage> {
   final matkulCol = FirebaseFirestore.instance.collection('matkul');
   final usersCol = FirebaseFirestore.instance.collection('users');
 
-  final namaCtrl = TextEditingController();
+  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
 
+  final namaCtrl = TextEditingController();
   String? selectedMatkulId;
   String? selectedUserId;
   String? editId;
@@ -27,7 +30,41 @@ class _DaftarKelasPageState extends State<DaftarKelasPage> {
   @override
   void initState() {
     super.initState();
+    _initializeNotifications();
     _loadInitialData();
+  }
+
+  Future<void> _initializeNotifications() async {
+    const AndroidInitializationSettings androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+    const InitializationSettings initSettings = InitializationSettings(
+      android: androidSettings,
+    );
+
+    await flutterLocalNotificationsPlugin.initialize(initSettings);
+  }
+
+  Future<void> _showNotification(String title, String body) async {
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+          'kelas_channel_id',
+          'Kelas Notifications',
+          channelDescription: 'Notifikasi untuk aksi pada data kelas',
+          importance: Importance.max,
+          priority: Priority.high,
+        );
+
+    const NotificationDetails notificationDetails = NotificationDetails(
+      android: androidDetails,
+    );
+
+    await flutterLocalNotificationsPlugin.show(
+      DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title,
+      body,
+      notificationDetails,
+    );
   }
 
   Future<void> _loadInitialData() async {
@@ -43,14 +80,12 @@ class _DaftarKelasPageState extends State<DaftarKelasPage> {
               .where(
                 (user) =>
                     user['role'] == 'Dosen' || user['role'] == 'Mahasiswa',
-              ) // Dosen & Mahasiswa
+              )
               .toList();
     } catch (e) {
       _showMessage('Gagal memuat data: $e');
     }
-    setState(() {
-      isLoading = false;
-    });
+    setState(() => isLoading = false);
   }
 
   Future<void> submitKelas() async {
@@ -67,14 +102,23 @@ class _DaftarKelasPageState extends State<DaftarKelasPage> {
       'user_id': selectedUserId,
       'updated_at': FieldValue.serverTimestamp(),
     };
+
     try {
       if (editId == null) {
         data['created_at'] = FieldValue.serverTimestamp();
         await kelasCol.add(data);
         _showMessage('Berhasil menambahkan kelas');
+        await _showNotification(
+          'Kelas Baru',
+          'Kelas "$nama" berhasil ditambahkan',
+        );
       } else {
         await kelasCol.doc(editId).update(data);
         _showMessage('Berhasil mengupdate kelas');
+        await _showNotification(
+          'Update Kelas',
+          'Kelas "$nama" berhasil diperbarui',
+        );
       }
       _clearForm();
     } catch (e) {
@@ -88,6 +132,7 @@ class _DaftarKelasPageState extends State<DaftarKelasPage> {
     try {
       await kelasCol.doc(id).delete();
       _showMessage('Berhasil menghapus kelas');
+      await _showNotification('Hapus Kelas', 'Kelas berhasil dihapus');
     } catch (e) {
       _showMessage('Gagal menghapus kelas: $e');
     }
