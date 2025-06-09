@@ -111,17 +111,24 @@ class _AdminPageState extends State<AdminPage> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: GridView.builder(
-          itemCount: cards.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 4 / 3,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            24,
+          ), // bottom padding untuk cegah overflow
+          child: GridView.builder(
+            itemCount: cards.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 4 / 3,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+            ),
+            itemBuilder: (context, i) => _DashboardCard(item: cards[i]),
           ),
-          itemBuilder: (context, i) => _DashboardCard(item: cards[i]),
         ),
       ),
     );

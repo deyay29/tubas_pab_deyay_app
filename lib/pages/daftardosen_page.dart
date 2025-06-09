@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:tubas_pab_deyay_app/main.dart';
 
 class DaftarDosenPage extends StatefulWidget {
   const DaftarDosenPage({super.key});
@@ -25,6 +27,27 @@ class _DaftarDosenPageState extends State<DaftarDosenPage> {
 
   bool _isValidEmail(String email) {
     return RegExp(r'^[\w-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
+
+  Future<void> showLocalNotification(String title, String body) async {
+    const AndroidNotificationDetails androidDetails =
+        AndroidNotificationDetails(
+          'dosen_channel_id',
+          'Dosen Channel',
+          importance: Importance.max,
+          priority: Priority.high,
+        );
+
+    const NotificationDetails notificationDetails = NotificationDetails(
+      android: androidDetails,
+    );
+
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      title,
+      body,
+      notificationDetails,
+    );
   }
 
   Future<void> submit() async {
@@ -69,6 +92,7 @@ class _DaftarDosenPageState extends State<DaftarDosenPage> {
         });
 
         showMsg('Berhasil menambahkan dosen');
+        await showLocalNotification('Dosen Baru', '$name berhasil ditambahkan');
       } else {
         // Update data dosen
         await usersCol.doc(editDocId).update({
@@ -77,7 +101,12 @@ class _DaftarDosenPageState extends State<DaftarDosenPage> {
           'email': email,
           'updated_at': FieldValue.serverTimestamp(),
         });
+
         showMsg('Berhasil mengupdate dosen');
+        await showLocalNotification(
+          'Update Dosen',
+          '$name berhasil diperbarui',
+        );
       }
 
       clearForm();
@@ -188,11 +217,7 @@ class _DaftarDosenPageState extends State<DaftarDosenPage> {
             const SizedBox(height: 16),
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
-                stream:
-                    usersCol
-                        .where('role', isEqualTo: 'Dosen')
-                        //.orderBy('created_at') // sementara dinonaktifkan agar data muncul tanpa perlu index
-                        .snapshots(),
+                stream: usersCol.where('role', isEqualTo: 'Dosen').snapshots(),
                 builder: (context, snap) {
                   if (snap.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
