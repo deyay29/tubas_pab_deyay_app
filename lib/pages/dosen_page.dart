@@ -4,6 +4,29 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
 
+class Tugas {
+  final int id;
+  final String judul;
+  final String deskripsi;
+  final String deadline;
+
+  Tugas({
+    required this.id,
+    required this.judul,
+    required this.deskripsi,
+    required this.deadline,
+  });
+
+  factory Tugas.fromJson(Map<String, dynamic> json) {
+    return Tugas(
+      id: json['id'],
+      judul: json['judul'],
+      deskripsi: json['deskripsi'],
+      deadline: json['deadline'],
+    );
+  }
+}
+
 class DosenPage extends StatefulWidget {
   const DosenPage({super.key});
 
@@ -21,11 +44,13 @@ class _DosenPageState extends State<DosenPage> {
   DateTime? _selectedDeadline;
 
   late Future<Map<String, dynamic>> _dosenDataFuture;
+  late Future<List<Tugas>> _tugasListFuture;
 
   @override
   void initState() {
     super.initState();
     _dosenDataFuture = fetchDosenData();
+    _tugasListFuture = fetchTugasList();
   }
 
   @override
@@ -54,6 +79,19 @@ class _DosenPageState extends State<DosenPage> {
     }
 
     return data;
+  }
+
+  Future<List<Tugas>> fetchTugasList() async {
+    final uri = Uri.parse('https://api-tubes-deyay.bimaryan.my.id/api/tugas');
+
+    final response = await http.get(uri);
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      final List tugasJson = data['Tugas'];
+      return tugasJson.map((json) => Tugas.fromJson(json)).toList();
+    } else {
+      throw Exception('Gagal memuat daftar tugas');
+    }
   }
 
   Future<void> logoutDosen(BuildContext context) async {
@@ -136,6 +174,11 @@ class _DosenPageState extends State<DosenPage> {
       _judulController.clear();
       _deskripsiController.clear();
       _deadlineController.clear();
+
+      // Refresh list tugas setelah kirim tugas
+      setState(() {
+        _tugasListFuture = fetchTugasList();
+      });
     } catch (e) {
       ScaffoldMessenger.of(
         context,
@@ -262,6 +305,50 @@ class _DosenPageState extends State<DosenPage> {
                   onPressed: _submitTugas,
                   icon: const Icon(Icons.add),
                   label: const Text('Kirim Tugas'),
+                ),
+
+                const SizedBox(height: 32),
+                Text(
+                  'Daftar Tugas',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                FutureBuilder<List<Tugas>>(
+                  future: _tugasListFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    } else if (snapshot.hasError) {
+                      return Text('Gagal memuat tugas: ${snapshot.error}');
+                    } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                      return const Text('Belum ada tugas yang dikirim.');
+                    }
+
+                    final tugasList = snapshot.data!;
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: tugasList.length,
+                      itemBuilder: (context, index) {
+                        final tugas = tugasList[index];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          child: ListTile(
+                            title: Text(tugas.judul),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Deskripsi: ${tugas.deskripsi}'),
+                                Text('Deadline: ${tugas.deadline}'),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
               ],
             ),
